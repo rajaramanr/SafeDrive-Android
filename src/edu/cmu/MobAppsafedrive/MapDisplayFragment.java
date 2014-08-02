@@ -48,6 +48,8 @@ public class MapDisplayFragment extends SupportMapFragment {
 	private GoogleMap mMap;
 	Geocoder geoCoder;
 	static String addressText = null;
+	Thread mapDisplay;
+	Marker dynamicMarker;
 
 	public MapDisplayFragment() {
 
@@ -62,9 +64,37 @@ public class MapDisplayFragment extends SupportMapFragment {
 		//View rootView = inflater.inflate(R.layout.fragment_map, container,
 			//	false);
 
+		refreshMapView();
+		
 		return rootView;
 	}
 
+	public void refreshMapView(){
+		
+		mapDisplay = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				
+				while(true){
+					
+					new GetCurrentAddressTask(getActivity()).execute();
+					
+					try {
+						Thread.sleep(Constants.jsonParseRate);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				
+			}
+		});
+		
+		mapDisplay.start();
+	}
+	
 	public class GetCurrentAddressTask extends AsyncTask<Void, Void, String> {
 		Context mContext;		
 		
@@ -79,7 +109,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 
 			Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
 			double latitude = Double.valueOf(Constants.SAFE_SPEED_LAT);
-			double longitude = Double.valueOf(Constants.SAFE_SPEED_LONG);
+			double longitude = Double.valueOf(Constants.SAFE_SPEED_LONG);					
 
 			if (SafeDrivePreferences.preferences.contains("latitude")) {
 				latitude = Double.valueOf(SafeDrivePreferences.preferences
@@ -139,7 +169,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 			}
 		}
 
-		protected void onPostExecute(String address) {
+		public void onPostExecute(String address) {
 			// Set activity indicator visibility to "gone"
 
 			if (!address.equals("Failure")) {
@@ -162,9 +192,14 @@ public class MapDisplayFragment extends SupportMapFragment {
 						Constants.SAFE_SPEED_LONG));
 		
 		LatLng latLng = new LatLng(lat,longt);		
-		mMap = getMap();		
 		
-		mMap.addMarker(new MarkerOptions().position(latLng).title(
+		if(mMap != null){
+			mMap.clear();
+		}
+		
+		mMap = getMap();		
+				
+		dynamicMarker = mMap.addMarker(new MarkerOptions().position(latLng).title(
 				"Current Location"));
 
 		CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(

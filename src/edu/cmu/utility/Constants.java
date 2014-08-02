@@ -8,8 +8,12 @@ public class Constants {
 	public static String SAFE_SPEED_LONG = "-79.994728";
 	public static String SAFE_SPEED_LIMIT = "Speed Limit:";
 	public static String SAFE_CURRENT_SPEED = "Current Speed:";
+	public static String SAFE_CURRENT_SPEED_VALUE = "60";
+	public static String SAFE_NATIONAL_SPEED_LIMIT_VALUE = "60";
+	public static double SAFE_SPEED_LIMIT_CALCULATION_FACTOR = 3.6;
 	// Database Version
 	public static final int DATABASE_VERSION = 1;
 	// Database Name
 	public static final String DATABASE_NAME = "AccidentDB.sqlite";
+	public static final long jsonParseRate = 2000; 
 }

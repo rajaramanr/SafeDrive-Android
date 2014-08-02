@@ -1,5 +1,6 @@
 package edu.cmu.MobAppsafedrive;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +20,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.ListFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,9 +34,8 @@ import android.widget.Toast;
 public class DashboardFragment extends ListFragment {
 
 	static JSONObject jsonObject = null;
-	private AQuery aquery;
 	DashBoardModel dashboardBean;
-
+	Thread fragmentDisplay;
 	// DashBoardModel dashboardBean;
 	static final String[] DASHBOARD_LIST_KEYS = new String[] {
 			Constants.SAFE_CURRENT_SPEED, Constants.SAFE_SPEED_LIMIT };
@@ -42,72 +43,108 @@ public class DashboardFragment extends ListFragment {
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		//View rootView = inflater.inflate(R.layout.fragment_dashboard,
-		//container, false);
+		// View rootView = inflater.inflate(R.layout.fragment_dashboard,
+		// container, false);
 
-		//ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-			//	inflater.getContext(), R.layout.fragment_dashboard,
-				//DASHBOARD_LIST_KEYS);		
-		dashboardBean = new DashBoardModel("100", "60");
-		setListAdapter(new DashboardListAdapter(getActivity(), DASHBOARD_LIST_KEYS));
+		// ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+		// inflater.getContext(), R.layout.fragment_dashboard,
+		// DASHBOARD_LIST_KEYS);
+		refreshView();
+		/*
+		 * dashboardBean = new DashBoardModel(
+		 * SafeDrivePreferences.preferences.getString("currentSpeed",
+		 * Constants.SAFE_CURRENT_SPEED_VALUE),
+		 * SafeDrivePreferences.preferences.getString("SpeedLimit",
+		 * Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+		 * 
+		 * setListAdapter(new DashboardListAdapter(getActivity(),
+		 * DASHBOARD_LIST_KEYS));
+		 */
 
 		//
 		// rootView.setListAdapter(new DashboardListAdapter<Arra>);
-		aquery = new AQuery(getActivity());
+		// aquery = new AQuery(getActivity());
 
 		// new SpeedLimit().execute();
-		displaySpeedLimit();
+		// displaySpeedLimit();
 
 		return super.onCreateView(inflater, container, savedInstanceState);
-		//return rootView;
+		// return rootView;
 	}
 
-	public void displaySpeedLimit() {
-
-		asyncJson();
-
-	}
+	/*
+	 * public void displaySpeedLimit() {
+	 * 
+	 * asyncJson();
+	 * 
+	 * }
+	 */
 
 	public void refreshView() {
-		dashboardBean = new DashBoardModel("100", "60");
-		setListAdapter(new DashboardListAdapter(getActivity(), DASHBOARD_LIST_KEYS));
-	}
 
-	public void asyncJson() {
+		final NumberFormat formatter = NumberFormat.getInstance();
+		formatter.setMinimumFractionDigits(2);
+		formatter.setMaximumFractionDigits(2);
 
-		String url = Constants.SAFE_SPEED_LIMIT_PRELINK;
-		url = url + Constants.SAFE_SPEED_LAT + "," + Constants.SAFE_SPEED_LONG;
-		url = url + Constants.SAFE_SPEED_LIMIT_POSTLINK;
-
-		// aquery.ajax(url, JSONObject.class, this, "jsonCallback");
-		aquery.ajax(url, JSONObject.class, new AjaxCallback<JSONObject>() {
+		fragmentDisplay = new Thread(new Runnable() {
 
 			@Override
-			public void callback(String url, JSONObject json, AjaxStatus status) {
+			public void run() {
+				// TODO Auto-generated method stub
 
-				if (json != null) {
+				while (true) {
 
-					// readSpeedByParsingJson(json);
-					// successful ajax call, show status code and json content
-					new ReadSpeedLimitParsingJson().execute(json);
-					/*
-					 * Toast.makeText(aquery.getContext(), status.getCode() +
-					 * ":" + json.toString(), Toast.LENGTH_LONG).show();
-					 */
+					Log.d("Inside Dash fragment thread",
+							SafeDrivePreferences.preferences
+									.getString(
+											"currentSpeed",
+											Constants.SAFE_CURRENT_SPEED_VALUE
+													+ SafeDrivePreferences.preferences
+															.getString(
+																	"SpeedLimit",
+																	Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE)));
 
-				} else {
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							// This code will always run on the UI thread,
+							// therefore
+							// is safe to modify UI elements.
 
-					// ajax error, show error code
-					Toast.makeText(aquery.getContext(),
-							"Error:" + status.getCode(), Toast.LENGTH_LONG)
-							.show();
+							String formattedCurrentSpeed = formatter.format(Double.valueOf(SafeDrivePreferences.preferences
+									.getString("currentSpeed",
+											Constants.SAFE_CURRENT_SPEED_VALUE)));
+
+							String formattedSpeedLimit = formatter.format(Double.valueOf(SafeDrivePreferences.preferences
+									.getString(
+											"SpeedLimit",
+											Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE)));
+
+							dashboardBean = new DashBoardModel(
+									formattedCurrentSpeed, formattedSpeedLimit);
+
+							setListAdapter(new DashboardListAdapter(
+									getActivity(), DASHBOARD_LIST_KEYS));
+
+						}
+					});
+
+					try {
+						Thread.sleep(Constants.jsonParseRate);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
+				// new RefreshDashboardView().execute();
+
 			}
 		});
 
+		fragmentDisplay.start();
 	}
 
-	class ReadSpeedLimitParsingJson extends AsyncTask<JSONObject, Void, String> {
+	class RefreshDashboardView extends AsyncTask<Void, Void, String> {
 
 		protected void onPostExecute(String result) {
 			if (result != "Success") {
@@ -117,39 +154,24 @@ public class DashboardFragment extends ListFragment {
 		}
 
 		@Override
-		protected String doInBackground(JSONObject... json) {
+		protected String doInBackground(Void... params) {
 			// TODO Auto-generated method stub
 
 			try {
-				double speedLimit;
-				JSONObject responseVal = json[0].getJSONObject("Response");
+				dashboardBean = new DashBoardModel(
+						SafeDrivePreferences.preferences.getString(
+								"currentSpeed",
+								Constants.SAFE_CURRENT_SPEED_VALUE),
+						SafeDrivePreferences.preferences.getString(
+								"SpeedLimit",
+								Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
 
-				JSONArray jsonArray = (JSONArray) (responseVal.get("Link"));
+				setListAdapter(new DashboardListAdapter(getActivity(),
+						DASHBOARD_LIST_KEYS));
 
-				JSONObject temp = jsonArray.getJSONObject(0);
-				if (temp.has("SpeedLimit")) {
-					speedLimit = temp.getDouble("SpeedLimit");
-					speedLimit = speedLimit * 3.6;
-
-					SafeDrivePreferences.setPreferences("SpeedLimit",
-							String.valueOf(speedLimit));
-					System.out.println(speedLimit);
-				} else {
-					if ((SafeDrivePreferences.preferences != null)
-							&& (SafeDrivePreferences.preferences
-									.contains("SpeedLimit"))) {
-
-						speedLimit = Double
-								.valueOf(SafeDrivePreferences.preferences
-										.getString("SpeedLimit", "60"));
-						System.out.println(speedLimit);
-					} else {
-						SafeDrivePreferences.setPreferences("SpeedLimit", "60");
-					}
-
-				}
 				return "Success";
-			} catch (JSONException e) {
+
+			} catch (Exception e) {
 				e.printStackTrace();
 				return "Failure";
 			}

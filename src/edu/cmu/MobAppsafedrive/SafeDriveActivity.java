@@ -6,15 +6,21 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.List;
 import java.util.ArrayList;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxCallback;
+import com.androidquery.callback.AjaxStatus;
+import com.google.android.gms.common.internal.safeparcel.SafeParcelable;
 import com.google.android.gms.internal.lg;
 
 import android.bluetooth.BluetoothAdapter;
@@ -24,6 +30,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -73,7 +80,8 @@ public class SafeDriveActivity extends ActionBarActivity implements
 	Set<String> data = new HashSet<String>();
 
 	BluetoothDevice dev = null;
-	Thread deviceDiscovery;
+	Thread carDataParse;
+	private AQuery aquery;
 
 	public List<CarDataModel> carDataList = new ArrayList<CarDataModel>();
 
@@ -103,11 +111,12 @@ public class SafeDriveActivity extends ActionBarActivity implements
 		SafeDrivePreferences.preferences = PreferenceManager
 				.getDefaultSharedPreferences(this);
 
-		readJsonFromJsonFile();
-
+		SafeDrivePreferences.setPreferences("SpeedLimit",Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
 		// Set up the action bar.
 		final ActionBar actionBar = getSupportActionBar();
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+
+		dashBoardFragment = new DashboardFragment();
 
 		// Create the adapter that will return a fragment for each of the three
 		// primary sections of the activity.
@@ -143,6 +152,9 @@ public class SafeDriveActivity extends ActionBarActivity implements
 					.setText(mSectionsPagerAdapter.getPageTitle(i))
 					.setTabListener(this));
 		}
+
+		readJsonFromJsonFile();
+		parseJsonData();
 	}
 
 	@Override
@@ -152,6 +164,61 @@ public class SafeDriveActivity extends ActionBarActivity implements
 		bluetoothItem = menu.findItem(R.id.item1);
 
 		return true;
+	}
+
+	public void parseJsonData() {
+
+		carDataParse = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+
+				Iterator it;
+				CarDataModel carDataModel;
+				boolean dashThreadStart = false;
+
+				while (true) {
+
+					it = carDataList.iterator();
+
+					Log.d("Inside car thread", "Values over");
+					Log.d("First value", "42.291595 " + "-83.237617");
+					while (it.hasNext()) {
+
+						carDataModel = (CarDataModel) it.next();
+
+						SafeDrivePreferences.setPreferences("latitude",
+								String.valueOf(carDataModel.getLatitude()));
+						SafeDrivePreferences.setPreferences("longitude",
+								String.valueOf(carDataModel.getLongitude()));
+						SafeDrivePreferences.setPreferences("currentSpeed",
+								String.valueOf(carDataModel.getCurrentSpeed()));
+						Log.d("Inside car thread",
+								String.valueOf(carDataModel.getLatitude())
+										+ String.valueOf(carDataModel
+												.getLongitude()
+												+ String.valueOf(carDataModel
+														.getCurrentSpeed())));
+						asyncJson();						
+						
+						try {
+							Thread.sleep(Constants.jsonParseRate);
+							
+							/*if(!dashThreadStart){
+								dashBoardFragment.refreshView();
+								dashThreadStart = true;
+							}*/
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+
+				}
+			}
+		});
+		carDataParse.start();
 	}
 
 	public void activateBluetooth() {
@@ -184,7 +251,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 		try {
 			reader = new BufferedReader(new InputStreamReader(getAssets().open(
-					"FinalAsDriving.json"), "UTF-8"));
+					"changedLtLg.json"), "UTF-8"));
 			while ((json = reader.readLine()) != null) {
 
 				// Instantiate a JSON object from the request response
@@ -215,6 +282,8 @@ public class SafeDriveActivity extends ActionBarActivity implements
 				isFirstDataCrossed = true;
 
 			}
+
+			Log.d("JSON File read", "true");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -368,10 +437,10 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 	public void refreshDashboardView(int position) {
 		if (position == 0) {
-			dashBoardFragment.displaySpeedLimit();
-			dashBoardFragment.refreshView();
+			//asyncJson();
+			//dashBoardFragment.refreshView();
 		} else if (position == 1) {
-			mapFragment.getCurrentAddressTaskObject().execute();
+//			mapFragment.getCurrentAddressTaskObject().execute();
 		}
 	}
 
@@ -390,7 +459,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 			switch (position) {
 			case 0:
-				dashBoardFragment = new DashboardFragment();
+				// dashBoardFragment = new DashboardFragment();
 				return dashBoardFragment;
 			case 1:
 				mapFragment = new MapDisplayFragment();
@@ -423,5 +492,93 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			return null;
 		}
 	}
+	
+	public void asyncJson() {
 
+		aquery = new AQuery(this);
+		
+		String url = Constants.SAFE_SPEED_LIMIT_PRELINK;
+		url = url + SafeDrivePreferences.preferences.getString("latitude", Constants.SAFE_SPEED_LAT) + "," + SafeDrivePreferences.preferences.getString("longitude", Constants.SAFE_SPEED_LONG);
+		url = url + Constants.SAFE_SPEED_LIMIT_POSTLINK;
+
+		// aquery.ajax(url, JSONObject.class, this, "jsonCallback");
+		aquery.ajax(url, JSONObject.class, new AjaxCallback<JSONObject>() {
+
+			@Override
+			public void callback(String url, JSONObject json, AjaxStatus status) {
+
+				if (json != null) {
+
+					// readSpeedByParsingJson(json);
+					// successful ajax call, show status code and json content
+					new ReadSpeedLimitParsingJson().execute(json);
+					/*
+					 * Toast.makeText(aquery.getContext(), status.getCode() +
+					 * ":" + json.toString(), Toast.LENGTH_LONG).show();
+					 */
+
+				} else {
+
+					// ajax error, show error code
+					Toast.makeText(aquery.getContext(),
+							"Error:" + status.getCode(), Toast.LENGTH_LONG)
+							.show();
+				}
+			}
+		});
+
+	}	
+
+
+	class ReadSpeedLimitParsingJson extends AsyncTask<JSONObject, Void, String> {
+
+		protected void onPostExecute(String result) {
+			if (result != "Success") {
+				Toast.makeText(getApplicationContext(), "Sorry!! Not displayed",
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+
+		@Override
+		protected String doInBackground(JSONObject... json) {
+			// TODO Auto-generated method stub
+
+			try {
+				double speedLimit;
+				JSONObject responseVal = json[0].getJSONObject("Response");
+
+				JSONArray jsonArray = (JSONArray) (responseVal.get("Link"));
+
+				JSONObject temp = jsonArray.getJSONObject(0);
+				if (temp.has("SpeedLimit")) {
+					speedLimit = temp.getDouble("SpeedLimit");
+					speedLimit = speedLimit * Constants.SAFE_SPEED_LIMIT_CALCULATION_FACTOR;
+
+					
+					SafeDrivePreferences.setPreferences("SpeedLimit",
+							String.valueOf(speedLimit));
+					Log.d("speed limit from web service", String.valueOf(speedLimit));
+				} else {
+					if ((SafeDrivePreferences.preferences != null)
+							&& (SafeDrivePreferences.preferences
+									.contains("SpeedLimit"))) {
+
+						speedLimit = Double
+								.valueOf(SafeDrivePreferences.preferences
+										.getString("SpeedLimit", Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+						Log.d("speed limit sp", String.valueOf(speedLimit));
+					} else {
+						SafeDrivePreferences.setPreferences("SpeedLimit", Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
+						Log.d("speed limit nh", String.valueOf(Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+					}
+
+				}
+				return "Success";
+			} catch (JSONException e) {
+				e.printStackTrace();
+				return "Failure";
+			}
+
+		}
+	}
 }
