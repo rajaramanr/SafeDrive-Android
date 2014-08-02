@@ -1,0 +1,21 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="edu.cmu.MobAppsafedrive.MainActivity" >
+
+     <item
+        android:id="@+id/item1"
+        android:orderInCategory="99"
+        android:title="@string/bluetooth_string"
+        app:showAsAction="always"
+        android:icon="@drawable/bluetooth_grey" 
+        android:menuCategory="container"/>
+        
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        app:showAsAction="never"
+        android:menuCategory="container"/>
+
+</menu>
