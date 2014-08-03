@@ -44,6 +44,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.SeekBar;
 import android.widget.Toast;
 import edu.cmu.Model.CarDataModel;
 import edu.cmu.utility.Constants;
@@ -82,6 +83,9 @@ public class SafeDriveActivity extends ActionBarActivity implements
 	BluetoothDevice dev = null;
 	Thread carDataParse;
 	private AQuery aquery;
+	private SeekBar seekBar1;
+	private SeekBar seekBar2;
+	
 
 	public List<CarDataModel> carDataList = new ArrayList<CarDataModel>();
 
@@ -392,7 +396,8 @@ public class SafeDriveActivity extends ActionBarActivity implements
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
-			return true;
+			Intent intent = new Intent(this, SettingsActivity.class);
+			startActivity(intent);
 		} else if (id == R.id.item1) {
 			activateBluetooth();
 			discoverDev();
