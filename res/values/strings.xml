@@ -8,6 +8,14 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="bluetooth_string">Bluetooth</string>
+    <string name="fb">Share</string>
     <string name="bluetooth_connected">Connected</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string-array name="spinnerItems">
+        <item>MPH</item>
+        <item>KmPH</item>
+       
+    </string-array>
+    
 
 </resources>

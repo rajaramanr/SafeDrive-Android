@@ -2,6 +2,7 @@ package edu.cmu.MobAppsafedrive;
 
 
 
+import edu.cmu.utility.SafeDrivePreferences;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -52,8 +53,13 @@ public class SettingsActivity extends ActionBarActivity {
 		String sV =	Boolean.toString(switchValue.isChecked());
 		
 		
-		System.out.println(s1 +" "+s2+" "+value+" "+sV);
+		SafeDrivePreferences.setPreferences("Threshold", s1);
+		SafeDrivePreferences.setPreferences("Unit", value);
+		SafeDrivePreferences.setPreferences("AlertMe", sV);
+		SafeDrivePreferences.setPreferences("Volume", s2);
 		
+		
+		System.out.println(s1 +" "+s2+" "+value+" "+sV);
 		
 	}
 	
