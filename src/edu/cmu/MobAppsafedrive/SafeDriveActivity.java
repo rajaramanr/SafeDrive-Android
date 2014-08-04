@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
@@ -47,6 +49,7 @@ import android.view.View;
 import android.widget.SeekBar;
 import android.widget.Toast;
 import edu.cmu.Model.CarDataModel;
+import edu.cmu.Model.ViolationsModel;
 import edu.cmu.utility.Constants;
 import edu.cmu.utility.MySQLiteHelper;
 import edu.cmu.utility.SafeDrivePreferences;
@@ -85,7 +88,9 @@ public class SafeDriveActivity extends ActionBarActivity implements
 	private AQuery aquery;
 	private SeekBar seekBar1;
 	private SeekBar seekBar2;
-	
+	Thread accidentProneDisplay;
+	MySQLiteHelper db;
+	public static List<ViolationsModel> violationsList = new ArrayList<ViolationsModel>();
 
 	public List<CarDataModel> carDataList = new ArrayList<CarDataModel>();
 
@@ -103,19 +108,20 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			}
 		}
 	};
-
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		MySQLiteHelper db = new MySQLiteHelper(this, Constants.DATABASE_NAME,
-				null, Constants.DATABASE_VERSION);
+		db = new MySQLiteHelper(this, Constants.DATABASE_NAME, null,
+				Constants.DATABASE_VERSION);
 
 		SafeDrivePreferences.preferences = PreferenceManager
 				.getDefaultSharedPreferences(this);
 
-		SafeDrivePreferences.setPreferences("SpeedLimit",Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
+		SafeDrivePreferences.setPreferences("SpeedLimit",
+				Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
 		// Set up the action bar.
 		final ActionBar actionBar = getSupportActionBar();
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -159,6 +165,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 		readJsonFromJsonFile();
 		parseJsonData();
+		checkAccidentProne();
 	}
 
 	@Override
@@ -168,6 +175,35 @@ public class SafeDriveActivity extends ActionBarActivity implements
 		bluetoothItem = menu.findItem(R.id.item1);
 
 		return true;
+	}
+
+	public void checkAccidentProne() {
+
+		accidentProneDisplay = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+
+				boolean isItAccidentProne = false;
+				while (true) {
+					if (db != null) {
+
+						isItAccidentProne = db.isItAccidentProne();
+
+					}
+
+					try {
+						Thread.sleep(Constants.jsonParseRate);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+
+			}
+		});
+		accidentProneDisplay.start();
 	}
 
 	public void parseJsonData() {
@@ -181,6 +217,8 @@ public class SafeDriveActivity extends ActionBarActivity implements
 				Iterator it;
 				CarDataModel carDataModel;
 				boolean dashThreadStart = false;
+				double speedLimit;
+				double currentSpeed;
 
 				while (true) {
 
@@ -198,21 +236,34 @@ public class SafeDriveActivity extends ActionBarActivity implements
 								String.valueOf(carDataModel.getLongitude()));
 						SafeDrivePreferences.setPreferences("currentSpeed",
 								String.valueOf(carDataModel.getCurrentSpeed()));
+
 						Log.d("Inside car thread",
 								String.valueOf(carDataModel.getLatitude())
 										+ String.valueOf(carDataModel
 												.getLongitude()
 												+ String.valueOf(carDataModel
 														.getCurrentSpeed())));
-						asyncJson();						
+						asyncJson();
+
+						currentSpeed = carDataModel.getCurrentSpeed();
+						speedLimit = Double.valueOf(SafeDrivePreferences.preferences
+								.getString(
+										"speedLimit",
+										Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+
+						double a = Math.random();
+						
+						if((currentSpeed - 1 >= speedLimit)||(a < 0.4)){
+							db.updateUserInfo();
+							
+							db.getViolationsFromUserInfo();
+							SafeDrivePreferences.setBooleanPreferences("violation", true);
+
+						}
 						
 						try {
 							Thread.sleep(Constants.jsonParseRate);
 							
-							/*if(!dashThreadStart){
-								dashBoardFragment.refreshView();
-								dashThreadStart = true;
-							}*/
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -243,9 +294,11 @@ public class SafeDriveActivity extends ActionBarActivity implements
 	public void readJsonFromJsonFile() {
 
 		String json;
-		int timeStamp = 0;
+		BigDecimal timeStampBigDecimal = new BigDecimal(0.0);
+		BigDecimal timeStampPrevBigDecimal = new BigDecimal(0.0);
+		double timeStamp = 0;
 		boolean isFirstDataCrossed = false;
-		int prevTimeStamp = 0;
+		double prevTimeStamp = 0;
 		JSONObject jsonObject;
 		BufferedReader reader;
 		String name;
@@ -253,9 +306,14 @@ public class SafeDriveActivity extends ActionBarActivity implements
 		double vehicleLatitude = 0.0;
 		double vehicleLongitude = 0.0;
 
+		NumberFormat numberFormat = NumberFormat.getInstance();
+
+		numberFormat.setMinimumFractionDigits(1);
+		numberFormat.setMaximumFractionDigits(1);
+
 		try {
 			reader = new BufferedReader(new InputStreamReader(getAssets().open(
-					"changedLtLg.json"), "UTF-8"));
+					"all.json"), "UTF-8"));
 			while ((json = reader.readLine()) != null) {
 
 				// Instantiate a JSON object from the request response
@@ -263,7 +321,9 @@ public class SafeDriveActivity extends ActionBarActivity implements
 				jsonObject = new JSONObject(json);
 
 				name = jsonObject.getString("name");
-				timeStamp = jsonObject.getInt("timestamp");
+				String temp = (jsonObject.getString("timestamp"));
+
+				timeStamp = Double.valueOf(temp);
 
 				if (name.equals("vehicle_speed")) {
 
@@ -275,14 +335,16 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 					vehicleLongitude = jsonObject.getDouble("value");
 				}
-				Log.d("JSON Data", name);
 
 				if ((timeStamp != prevTimeStamp) && (isFirstDataCrossed)) {
 					carDataList.add(new CarDataModel(vehicleSpeed,
 							vehicleLatitude, vehicleLongitude));
+					//Log.d("JSON Data", "" + vehicleSpeed + " "
+						//	+ vehicleLatitude + " " + vehicleLongitude);
 				}
 
 				prevTimeStamp = timeStamp;
+				// timeStampPrevBigDecimal = timeStampBigDecimal;
 				isFirstDataCrossed = true;
 
 			}
@@ -442,10 +504,10 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 	public void refreshDashboardView(int position) {
 		if (position == 0) {
-			//asyncJson();
-			//dashBoardFragment.refreshView();
+			// asyncJson();
+			// dashBoardFragment.refreshView();
 		} else if (position == 1) {
-//			mapFragment.getCurrentAddressTaskObject().execute();
+			// mapFragment.getCurrentAddressTaskObject().execute();
 		}
 	}
 
@@ -497,13 +559,18 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			return null;
 		}
 	}
-	
+
 	public void asyncJson() {
 
 		aquery = new AQuery(this);
-		
+
 		String url = Constants.SAFE_SPEED_LIMIT_PRELINK;
-		url = url + SafeDrivePreferences.preferences.getString("latitude", Constants.SAFE_SPEED_LAT) + "," + SafeDrivePreferences.preferences.getString("longitude", Constants.SAFE_SPEED_LONG);
+		url = url
+				+ SafeDrivePreferences.preferences.getString("latitude",
+						Constants.SAFE_SPEED_LAT)
+				+ ","
+				+ SafeDrivePreferences.preferences.getString("longitude",
+						Constants.SAFE_SPEED_LONG);
 		url = url + Constants.SAFE_SPEED_LIMIT_POSTLINK;
 
 		// aquery.ajax(url, JSONObject.class, this, "jsonCallback");
@@ -532,15 +599,14 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			}
 		});
 
-	}	
-
+	}
 
 	class ReadSpeedLimitParsingJson extends AsyncTask<JSONObject, Void, String> {
 
 		protected void onPostExecute(String result) {
 			if (result != "Success") {
-				Toast.makeText(getApplicationContext(), "Sorry!! Not displayed",
-						Toast.LENGTH_SHORT).show();
+				Toast.makeText(getApplicationContext(),
+						"Sorry!! Not displayed", Toast.LENGTH_SHORT).show();
 			}
 		}
 
@@ -555,14 +621,27 @@ public class SafeDriveActivity extends ActionBarActivity implements
 				JSONArray jsonArray = (JSONArray) (responseVal.get("Link"));
 
 				JSONObject temp = jsonArray.getJSONObject(0);
+				JSONObject addressObj;
+				String county, state;
+
+				if (temp.has("Address")) {
+
+					addressObj = temp.getJSONObject("Address");
+					county = addressObj.getString("County");
+					state = addressObj.getString("State");
+					SafeDrivePreferences.setPreferences("county", county);
+					SafeDrivePreferences.setPreferences("state", state);
+				}
+
 				if (temp.has("SpeedLimit")) {
 					speedLimit = temp.getDouble("SpeedLimit");
-					speedLimit = speedLimit * Constants.SAFE_SPEED_LIMIT_CALCULATION_FACTOR;
+					speedLimit = speedLimit
+							* Constants.SAFE_SPEED_LIMIT_CALCULATION_FACTOR;
 
-					
 					SafeDrivePreferences.setPreferences("SpeedLimit",
 							String.valueOf(speedLimit));
-					Log.d("speed limit from web service", String.valueOf(speedLimit));
+					Log.d("speed limit from web service",
+							String.valueOf(speedLimit));
 				} else {
 					if ((SafeDrivePreferences.preferences != null)
 							&& (SafeDrivePreferences.preferences
@@ -570,11 +649,15 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 						speedLimit = Double
 								.valueOf(SafeDrivePreferences.preferences
-										.getString("SpeedLimit", Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+										.getString(
+												"SpeedLimit",
+												Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
 						Log.d("speed limit sp", String.valueOf(speedLimit));
 					} else {
-						SafeDrivePreferences.setPreferences("SpeedLimit", Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
-						Log.d("speed limit nh", String.valueOf(Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+						SafeDrivePreferences.setPreferences("SpeedLimit",
+								Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
+						Log.d("speed limit nh",
+								String.valueOf(Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
 					}
 
 				}

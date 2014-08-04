@@ -60,27 +60,28 @@ public class MapDisplayFragment extends SupportMapFragment {
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		View rootView = super.onCreateView(inflater,container,savedInstanceState);
-		//View rootView = inflater.inflate(R.layout.fragment_map, container,
-			//	false);
+		View rootView = super.onCreateView(inflater, container,
+				savedInstanceState);
+		// View rootView = inflater.inflate(R.layout.fragment_map, container,
+		// false);
 
 		refreshMapView();
-		
+
 		return rootView;
 	}
 
-	public void refreshMapView(){
-		
+	public void refreshMapView() {
+
 		mapDisplay = new Thread(new Runnable() {
-			
+
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub
-				
-				while(true){
-					
+
+				while (true) {
+
 					new GetCurrentAddressTask(getActivity()).execute();
-					
+
 					try {
 						Thread.sleep(Constants.jsonParseRate);
 					} catch (InterruptedException e) {
@@ -88,28 +89,30 @@ public class MapDisplayFragment extends SupportMapFragment {
 						e.printStackTrace();
 					}
 				}
-				
+
 			}
 		});
-		
+
 		mapDisplay.start();
 	}
-	
+
 	public class GetCurrentAddressTask extends AsyncTask<Void, Void, String> {
-		Context mContext;		
-		
+		Context mContext;
+
 		public GetCurrentAddressTask(Context context) {
 			super();
-			mContext = context;		
-		}		 
-		    
+			mContext = context;
+		}
+
 		@Override
 		protected String doInBackground(Void... params) {
 			// TODO Auto-generated method stub
 
 			Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
 			double latitude = Double.valueOf(Constants.SAFE_SPEED_LAT);
-			double longitude = Double.valueOf(Constants.SAFE_SPEED_LONG);					
+			double longitude = Double.valueOf(Constants.SAFE_SPEED_LONG);
+			String street;
+			String state;
 
 			if (SafeDrivePreferences.preferences.contains("latitude")) {
 				latitude = Double.valueOf(SafeDrivePreferences.preferences
@@ -127,7 +130,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 			try {
 				/*
 				 * Return 1 address.
-				 */				
+				 */
 
 				addresses = geocoder.getFromLocation(latitude, longitude, 1);
 			} catch (IOException e1) {
@@ -153,11 +156,15 @@ public class MapDisplayFragment extends SupportMapFragment {
 				 * Format the first line of address (if available), city, and
 				 * country name.
 				 */
-				String addressText = String.format(
-						"%s, %s, %s",
-						// If there's a street address, add it
-						address.getMaxAddressLineIndex() > 0 ? address
-								.getAddressLine(0) : "",
+
+				street = address.getMaxAddressLineIndex() > 0 ? address
+						.getAddressLine(0) : "";
+
+				SafeDrivePreferences.setPreferences("street", street);
+				
+				String addressText = String.format("%s, %s, %s",
+				// If there's a street address, add it
+						street,
 						// Locality is usually a city
 						address.getLocality(),
 						// The country of the address
@@ -173,54 +180,52 @@ public class MapDisplayFragment extends SupportMapFragment {
 			// Set activity indicator visibility to "gone"
 
 			if (!address.equals("Failure")) {
-				
+
 				addressText = address;
-				displayCurrentLocation();				
+				displayCurrentLocation();
 			}
 
 		}
-		
-		
-	}
-	
-	public void displayCurrentLocation(){				
 
-		double lat = Double.valueOf(SafeDrivePreferences.preferences
-				.getString("latitude", Constants.SAFE_SPEED_LAT));
+	}
+
+	public void displayCurrentLocation() {
+
+		double lat = Double.valueOf(SafeDrivePreferences.preferences.getString(
+				"latitude", Constants.SAFE_SPEED_LAT));
 		double longt = Double.valueOf(SafeDrivePreferences.preferences
-				.getString("longitude",
-						Constants.SAFE_SPEED_LONG));
-		
-		LatLng latLng = new LatLng(lat,longt);		
-		
-		if(mMap != null){
+				.getString("longitude", Constants.SAFE_SPEED_LONG));
+
+		LatLng latLng = new LatLng(lat, longt);
+
+		if (mMap != null) {
 			mMap.clear();
 		}
-		
-		mMap = getMap();		
-				
-		dynamicMarker = mMap.addMarker(new MarkerOptions().position(latLng).title(
-				"Current Location"));
 
-		CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(
-				latLng, 15);
-		mMap.animateCamera(yourLocation);		
+		mMap = getMap();
+
+		dynamicMarker = mMap.addMarker(new MarkerOptions().position(latLng)
+				.title("Current Location"));
+
+		CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(latLng,
+				15);
+		mMap.animateCamera(yourLocation);
 		mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
-			
+
 			@Override
 			public boolean onMarkerClick(Marker marker) {
 				// TODO Auto-generated method stub
-				
+
 				marker.setSnippet(addressText);
 				marker.showInfoWindow();
 				return true;
 			}
-		});			
+		});
 
 	}
-	
-	public GetCurrentAddressTask getCurrentAddressTaskObject(){
-		
+
+	public GetCurrentAddressTask getCurrentAddressTaskObject() {
+
 		return new GetCurrentAddressTask(getActivity());
-	}	
+	}
 }
