@@ -2,16 +2,14 @@ package edu.cmu.MobAppsafedrive;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -22,19 +20,19 @@ import org.json.JSONObject;
 import com.androidquery.AQuery;
 import com.androidquery.callback.AjaxCallback;
 import com.androidquery.callback.AjaxStatus;
-import com.google.android.gms.common.internal.safeparcel.SafeParcelable;
-import com.google.android.gms.internal.lg;
-
+import com.facebook.HttpMethod;
+import com.facebook.Request;
+import com.facebook.RequestAsyncTask;
+import com.facebook.Response;
+import com.facebook.Session;
+import com.facebook.SessionState;
+import com.facebook.UiLifecycleHelper;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -45,13 +43,11 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.SeekBar;
 import android.widget.Toast;
 import edu.cmu.Model.CarDataModel;
 import edu.cmu.Model.ViolationsModel;
 import edu.cmu.utility.Constants;
-import edu.cmu.utility.MySQLiteHelper;
+import edu.cmu.utility.SafeSQLiteHelper;
 import edu.cmu.utility.SafeDrivePreferences;
 import android.support.v7.app.ActionBar;
 
@@ -77,44 +73,39 @@ public class SafeDriveActivity extends ActionBarActivity implements
 	MapDisplayFragment mapFragment;
 	MenuItem bluetoothItem;
 	BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-	private Set<String> devicesDisc = new HashSet<String>();
-	private static final UUID BLUETOOTH_SPP_UUID = UUID
-			.fromString("00001101-0000-1000-8000-00805f9b34fb");
-	public static final int MESSAGE_READ = 9999;
+	public static final int MESSAGE_READ = 9999;	
 	Set<String> data = new HashSet<String>();
 
+	private UiLifecycleHelper uiHelper;
 	BluetoothDevice dev = null;
 	Thread carDataParse;
 	private AQuery aquery;
-	private SeekBar seekBar1;
-	private SeekBar seekBar2;
 	Thread accidentProneDisplay;
-	MySQLiteHelper db;
+	SafeSQLiteHelper db;
 	public static List<ViolationsModel> violationsList = new ArrayList<ViolationsModel>();
 
-	public List<CarDataModel> carDataList = new ArrayList<CarDataModel>();
+	private static final List<String> PERMISSIONS = Arrays.asList("publish_actions");
+	private static final String PENDING_PUBLISH_KEY = "pendingPublishReauthorization";
+	private boolean pendingPublishReauthorization = false;
 
-	private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-		public void onReceive(Context context, Intent intent) {
-			String action = intent.getAction();
-			// Log.d(CURRENT_CLASS, "Reaching receiver" + " - action : " +
-			// action);
-			if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-				BluetoothDevice device = intent
-						.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-				if (device.getName().contains("Nexus 7"))
-					dev = device;
-				devicesDisc.add(device.getName() + " - " + device.getAddress());
-			}
-		}
-	};
+	public List<CarDataModel> carDataList = new ArrayList<CarDataModel>();
+	
+	MediaPlayer mp;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		uiHelper = new UiLifecycleHelper(this, null);
+	    uiHelper.onCreate(savedInstanceState);
+	    mp = MediaPlayer.create(getApplicationContext(), R.raw.digital);
 
-		db = new MySQLiteHelper(this, Constants.DATABASE_NAME, null,
+ if (savedInstanceState != null) {
+	        pendingPublishReauthorization = 
+	            savedInstanceState.getBoolean(PENDING_PUBLISH_KEY, false);
+	    }
+		db = new SafeSQLiteHelper(this, Constants.DATABASE_NAME, null,
 				Constants.DATABASE_VERSION);
 
 		SafeDrivePreferences.preferences = PreferenceManager
@@ -190,7 +181,13 @@ public class SafeDriveActivity extends ActionBarActivity implements
 					if (db != null) {
 
 						isItAccidentProne = db.isItAccidentProne();
-
+						
+						if(isItAccidentProne){
+							SafeDrivePreferences.setBooleanPreferences("isItAccidentProne", true);
+						}else{
+							SafeDrivePreferences.setBooleanPreferences("isItAccidentProne", false);
+						}
+						
 					}
 
 					try {
@@ -215,17 +212,14 @@ public class SafeDriveActivity extends ActionBarActivity implements
 				// TODO Auto-generated method stub
 
 				Iterator it;
-				CarDataModel carDataModel;
-				boolean dashThreadStart = false;
+				CarDataModel carDataModel;				
 				double speedLimit;
 				double currentSpeed;
 
 				while (true) {
 
 					it = carDataList.iterator();
-
-					Log.d("Inside car thread", "Values over");
-					Log.d("First value", "42.291595 " + "-83.237617");
+			
 					while (it.hasNext()) {
 
 						carDataModel = (CarDataModel) it.next();
@@ -236,13 +230,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 								String.valueOf(carDataModel.getLongitude()));
 						SafeDrivePreferences.setPreferences("currentSpeed",
 								String.valueOf(carDataModel.getCurrentSpeed()));
-
-						Log.d("Inside car thread",
-								String.valueOf(carDataModel.getLatitude())
-										+ String.valueOf(carDataModel
-												.getLongitude()
-												+ String.valueOf(carDataModel
-														.getCurrentSpeed())));
+						
 						asyncJson();
 
 						currentSpeed = carDataModel.getCurrentSpeed();
@@ -251,12 +239,13 @@ public class SafeDriveActivity extends ActionBarActivity implements
 										"speedLimit",
 										Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
 
-						double a = Math.random();
+						db.getViolationsFromUserInfo();
 						
-						if((currentSpeed - 1 >= speedLimit)||(a < 0.4)){
+						if((currentSpeed - 1 >= speedLimit)){
 							db.updateUserInfo();
+															
+							mp.start();
 							
-							db.getViolationsFromUserInfo();
 							SafeDrivePreferences.setBooleanPreferences("violation", true);
 
 						}
@@ -276,26 +265,10 @@ public class SafeDriveActivity extends ActionBarActivity implements
 		carDataParse.start();
 	}
 
-	public void activateBluetooth() {
-		Log.d("activateBluetooth", "inside activateBluetooth");
-
-		if (!mBluetoothAdapter.isEnabled()) {
-			Intent discoverableIntent = new Intent(
-					BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-			discoverableIntent.putExtra(
-					BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-			startActivity(discoverableIntent);
-		} else {
-			Toast.makeText(this, "Looks like you are already connected",
-					Toast.LENGTH_SHORT).show();
-		}
-	}
-
+	
 	public void readJsonFromJsonFile() {
 
 		String json;
-		BigDecimal timeStampBigDecimal = new BigDecimal(0.0);
-		BigDecimal timeStampPrevBigDecimal = new BigDecimal(0.0);
 		double timeStamp = 0;
 		boolean isFirstDataCrossed = false;
 		double prevTimeStamp = 0;
@@ -313,7 +286,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 		try {
 			reader = new BufferedReader(new InputStreamReader(getAssets().open(
-					"all.json"), "UTF-8"));
+					"Final.json"), "UTF-8"));
 			while ((json = reader.readLine()) != null) {
 
 				// Instantiate a JSON object from the request response
@@ -338,13 +311,10 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 				if ((timeStamp != prevTimeStamp) && (isFirstDataCrossed)) {
 					carDataList.add(new CarDataModel(vehicleSpeed,
-							vehicleLatitude, vehicleLongitude));
-					//Log.d("JSON Data", "" + vehicleSpeed + " "
-						//	+ vehicleLatitude + " " + vehicleLongitude);
+							vehicleLatitude, vehicleLongitude));			
 				}
 
 				prevTimeStamp = timeStamp;
-				// timeStampPrevBigDecimal = timeStampBigDecimal;
 				isFirstDataCrossed = true;
 
 			}
@@ -360,96 +330,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 	}
 
-	public void discoverDev() {
-		Log.d("discoverDev", "inside discoverDev");
-		IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-		registerReceiver(mReceiver, filter); // Don't forget to unregister
-												// during onDestroy
-		mBluetoothAdapter.startDiscovery();
-	}
-
-	public void connectMe() {
-		Log.d("connectMe", "inside connectMe");
-		new ConnectThread(dev, mBluetoothAdapter).start();
-	}
-
-	private class ConnectThread extends Thread {
-		private final BluetoothSocket mmSocket;
-		private BluetoothAdapter adapter;
-		private final BluetoothDevice mmDevice;
-		private InputStream mmInStream;
-		private Handler mHandler = new Handler();
-
-		public ConnectThread(BluetoothDevice device, BluetoothAdapter adapter) {
-			BluetoothSocket tmp = null;
-			this.adapter = adapter;
-			mmDevice = device;
-
-			Log.d("Found device", "" + device);
-			try {
-				tmp = device
-						.createRfcommSocketToServiceRecord(BLUETOOTH_SPP_UUID);
-			} catch (IOException e) {
-			}
-			mmSocket = tmp;
-		}
-
-		public void run() {
-			adapter.cancelDiscovery();
-			try {
-				Log.d("Main", "Trying to connect");
-				mmSocket.connect();
-			} catch (IOException connectException) {
-				try {
-					mmSocket.close();
-				} catch (IOException closeException) {
-				}
-				return;
-			}
-			data = manageConnectedSocket(mmSocket);
-			try {
-				mmSocket.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-		/** Will cancel an in-progress connection, and close the socket */
-		public void cancel() {
-			try {
-				mmSocket.close();
-			} catch (IOException e) {
-			}
-		}
-
-		private Set<String> manageConnectedSocket(BluetoothSocket mmSocket) {
-			Log.d("Main", "Connected Hammaya");
-			InputStream tmpIn = null;
-			try {
-				tmpIn = mmSocket.getInputStream();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			mmInStream = tmpIn;
-			byte[] buffer = new byte[1024]; // buffer store for the stream
-			int bytes; // bytes returned from read()
-			while (true) {
-				try {
-					bytes = mmInStream.read(buffer);
-					mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-							.sendToTarget();
-				} catch (IOException e) {
-					break;
-				}
-				Log.d("Main", "Bytes Received - " + new String(buffer));
-				data.add(new String(buffer));
-
-			}
-			return data;
-
-		}
-	}
+		
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
@@ -461,23 +342,136 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			Intent intent = new Intent(this, SettingsActivity.class);
 			startActivity(intent);
 		} else if (id == R.id.item1) {
-			activateBluetooth();
-			discoverDev();
+Intent intent = new Intent(this,ConnectActivity.class);
+			startActivity(intent);
 
-			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+
+		}else if(id == R.id.item2){
+			
+			
+			publishStory();
 			}
-
-			connectMe();
-
-			bluetoothItem.setIcon(R.drawable.bluetooth_blue);
-		}
 		return super.onOptionsItemSelected(item);
 	}
+	
+	private void publishStory() {
+		
+	    Session session = Session.getActiveSession();
 
+	    if (session != null){
+
+	        // Check for publish permissions    
+	        List<String> permissions = session.getPermissions();
+	        if (!isSubsetOf(PERMISSIONS, permissions)) {
+	            pendingPublishReauthorization = true;
+	            Session.NewPermissionsRequest newPermissionsRequest = new Session
+	                    .NewPermissionsRequest(this, PERMISSIONS);
+	        session.requestNewPublishPermissions(newPermissionsRequest);
+	            return;
+	        }
+
+	        Bundle postParams = new Bundle();
+	        //postParams.putString("name", "Facebook SDK for Android");
+	       // postParams.putString("caption", "Build great social apps and get more installs.");
+	     //   postParams.putString("description", "The Facebook SDK for Android makes it easier and faster to develop Facebook integrated Android apps.");
+	        postParams.putString("message", "SafeDrive");
+	      //  postParams.putString("link", "https://developers.facebook.com/android");
+	     //   postParams.putString("picture", "https://raw.github.com/fbsamples/ios-3.x-howtos/master/Images/iossdk_logo.png");
+
+	        Request.Callback callback= new Request.Callback() {
+	            public void onCompleted(Response response) {
+	            /*    JSONObject graphResponse = response
+	                                           .getGraphObject()
+	                                           .getInnerJSONObject();
+	                String postId = null;
+	                try {
+	                    postId = graphResponse.getString("id");
+	                } catch (JSONException e) {
+	                    Log.i(TAG,
+	                        "JSON error "+ e.getMessage());
+	                }
+	                FacebookRequestError error = response.getError();
+	                if (error != null) {
+	                    Toast.makeText(
+	                         getApplicationContext(),
+	                         error.getErrorMessage(),
+	                         Toast.LENGTH_SHORT).show();
+	                    } else {
+	                        Toast.makeText(getApplicationContext(), 
+	                             postId,
+	                             Toast.LENGTH_LONG).show();
+	                }
+*/	            }
+	        };
+
+	        Request request = new Request(session, "me/feed", postParams, 
+	                              HttpMethod.POST, callback);
+
+	        RequestAsyncTask task = new RequestAsyncTask(request);
+	        task.execute();
+	    }
+
+	}
+	private boolean isSubsetOf(Collection<String> subset, Collection<String> superset) {
+	    for (String string : subset) {
+	        if (!superset.contains(string)) {
+	            return false;
+	        }
+	    }
+	    return true;
+	}
+	
+	private void onSessionStateChange(Session session, SessionState state, Exception exception) {
+	    if (state.isOpened()) {
+	       // shareButton.setVisibility(View.VISIBLE);
+	    	if (pendingPublishReauthorization && 
+	    	        state.equals(SessionState.OPENED_TOKEN_UPDATED)) {
+	    	    pendingPublishReauthorization = false;
+	    	    publishStory();
+	    	}
+	    } else if (state.isClosed()) {
+	       // shareButton.setVisibility(View.INVISIBLE);
+	    }
+	    
+	}
+	
+	@Override
+	public void onSaveInstanceState(Bundle outState) {
+	    super.onSaveInstanceState(outState);
+	    outState.putBoolean(PENDING_PUBLISH_KEY, pendingPublishReauthorization);
+	    uiHelper.onSaveInstanceState(outState);
+	}
+	
+	@Override
+	public void onResume() {
+	    super.onResume();
+	    uiHelper.onResume();
+	}
+
+	@Override
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+	    super.onActivityResult(requestCode, resultCode, data);
+	    uiHelper.onActivityResult(requestCode, resultCode, data);
+	}
+
+	@Override
+	public void onPause() {
+	    super.onPause();
+	    uiHelper.onPause();
+	}
+
+	@Override
+	public void onDestroy() {
+	    super.onDestroy();
+	    uiHelper.onDestroy();
+	}
+
+	/*@Override
+	public void onSaveInstanceState(Bundle outState) {
+	    super.onSaveInstanceState(outState);
+	    uiHelper.onSaveInstanceState(outState);
+	}
+*/
 	@Override
 	public void onTabSelected(ActionBar.Tab tab,
 			FragmentTransaction fragmentTransaction) {
@@ -640,8 +634,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 					SafeDrivePreferences.setPreferences("SpeedLimit",
 							String.valueOf(speedLimit));
-					Log.d("speed limit from web service",
-							String.valueOf(speedLimit));
+					
 				} else {
 					if ((SafeDrivePreferences.preferences != null)
 							&& (SafeDrivePreferences.preferences
@@ -652,12 +645,11 @@ public class SafeDriveActivity extends ActionBarActivity implements
 										.getString(
 												"SpeedLimit",
 												Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
-						Log.d("speed limit sp", String.valueOf(speedLimit));
+						
 					} else {
 						SafeDrivePreferences.setPreferences("SpeedLimit",
 								Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE);
-						Log.d("speed limit nh",
-								String.valueOf(Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+						
 					}
 
 				}

@@ -23,13 +23,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
 import android.util.Log;
 
-public class MySQLiteHelper extends SQLiteOpenHelper {
+public class SafeSQLiteHelper extends SQLiteOpenHelper {
 
 	private Context context;
 	private static String dbPath;
 	public static SQLiteDatabase database;
 
-	public MySQLiteHelper(Context context, String name, CursorFactory factory,
+	public SafeSQLiteHelper(Context context, String name, CursorFactory factory,
 			int version) {
 		super(context, Environment.getExternalStorageDirectory()
 

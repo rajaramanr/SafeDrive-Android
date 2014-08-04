@@ -4,6 +4,7 @@ package edu.cmu.MobAppsafedrive;
 
 import edu.cmu.utility.SafeDrivePreferences;
 import android.support.v7.app.ActionBarActivity;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,12 +19,12 @@ public class SettingsActivity extends ActionBarActivity {
 	private SeekBar seekBar2;
 	Spinner spinner;
 	Switch switchValue;
+
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_settings1);
-		
+		setContentView(R.layout.activity_settings1);		
 		
 	}
 

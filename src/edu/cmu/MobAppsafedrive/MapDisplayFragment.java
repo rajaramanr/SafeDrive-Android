@@ -3,13 +3,6 @@ package edu.cmu.MobAppsafedrive;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesClient;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.drive.internal.GetMetadataRequest;
-import com.google.android.gms.location.LocationClient;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -21,26 +14,16 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import edu.cmu.utility.Constants;
 import edu.cmu.utility.SafeDrivePreferences;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentSender;
-import android.content.SharedPreferences;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
-import android.widget.Toast;
 
 public class MapDisplayFragment extends SupportMapFragment {
 
@@ -111,8 +94,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 			Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
 			double latitude = Double.valueOf(Constants.SAFE_SPEED_LAT);
 			double longitude = Double.valueOf(Constants.SAFE_SPEED_LONG);
-			String street;
-			String state;
+			String street;		
 
 			if (SafeDrivePreferences.preferences.contains("latitude")) {
 				latitude = Double.valueOf(SafeDrivePreferences.preferences

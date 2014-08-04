@@ -14,6 +14,11 @@
     <string name="display_violations">Violations For Last 7 Days</string>
     <string name="display_date">Date</string>
     <string name="display_vln">Violations</string>
+    <string name="Activate">Activate Client Bluetooth</string>
+    <string name="Enter">Enter</string>
+    <string name="ShowPDev">Show paired Devices</string>
+    <string name="DiscoverDev">Discover Devices</string>
+    <string name="Connect">Connect</string>
     
     
     <string-array name="spinnerItems">
@@ -22,5 +27,7 @@
        
     </string-array>
     
+    <string name="app_id">558707017572872</string>
+    <string name="title_activity_connect">ConnectActivity</string>
 
 </resources>

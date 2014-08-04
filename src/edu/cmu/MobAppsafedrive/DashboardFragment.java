@@ -1,33 +1,20 @@
 package edu.cmu.MobAppsafedrive;
 
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-
-import com.androidquery.AQuery;
-import com.androidquery.callback.AjaxCallback;
-import com.androidquery.callback.AjaxStatus;
-
 import edu.cmu.Model.DashBoardModel;
 import edu.cmu.utility.Constants;
 import edu.cmu.utility.SafeDrivePreferences;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.WebView.FindListener;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,35 +27,15 @@ public class DashboardFragment extends ListFragment {
 	static final String[] DASHBOARD_LIST_KEYS = new String[] {
 			Constants.SAFE_CURRENT_SPEED, Constants.SAFE_SPEED_LIMIT };
 
+	View view;
+
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		// View rootView = inflater.inflate(R.layout.fragment_dashboard,
-		// container, false);
-
-		// ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-		// inflater.getContext(), R.layout.fragment_dashboard,
-		// DASHBOARD_LIST_KEYS);
+		view = super.onCreateView(inflater, container, savedInstanceState);
 		refreshView();
-		/*
-		 * dashboardBean = new DashBoardModel(
-		 * SafeDrivePreferences.preferences.getString("currentSpeed",
-		 * Constants.SAFE_CURRENT_SPEED_VALUE),
-		 * SafeDrivePreferences.preferences.getString("SpeedLimit",
-		 * Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
-		 * 
-		 * setListAdapter(new DashboardListAdapter(getActivity(),
-		 * DASHBOARD_LIST_KEYS));
-		 */
 
-		//
-		// rootView.setListAdapter(new DashboardListAdapter<Arra>);
-		// aquery = new AQuery(getActivity());
-
-		// new SpeedLimit().execute();
-		// displaySpeedLimit();
-
-		return super.onCreateView(inflater, container, savedInstanceState);
+		return view;
 		// return rootView;
 	}
 
@@ -82,6 +49,7 @@ public class DashboardFragment extends ListFragment {
 
 	public void refreshView() {
 
+		
 		final NumberFormat formatter = NumberFormat.getInstance();
 		formatter.setMinimumFractionDigits(2);
 		formatter.setMaximumFractionDigits(2);
@@ -110,7 +78,15 @@ public class DashboardFragment extends ListFragment {
 							// This code will always run on the UI thread,
 							// therefore
 							// is safe to modify UI elements.
-
+							boolean isItAccidentProne = SafeDrivePreferences.preferences.getBoolean("isItAccidentProne", false);
+														
+							if(isItAccidentProne){
+								view.setBackgroundColor(Color.RED);
+							}else{
+								view.setBackgroundColor(Color.WHITE);
+							}
+							
+							
 							String formattedCurrentSpeed = formatter.format(Double.valueOf(SafeDrivePreferences.preferences
 									.getString("currentSpeed",
 											Constants.SAFE_CURRENT_SPEED_VALUE)));

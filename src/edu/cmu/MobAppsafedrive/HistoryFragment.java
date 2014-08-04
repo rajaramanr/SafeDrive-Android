@@ -2,23 +2,17 @@ package edu.cmu.MobAppsafedrive;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import edu.cmu.MobAppsafedrive.DashboardFragment.DashboardListAdapter;
-import edu.cmu.Model.DashBoardModel;
 import edu.cmu.Model.ViolationsModel;
 import edu.cmu.utility.Constants;
 import edu.cmu.utility.SafeDrivePreferences;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
-import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.WebView.FindListener;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class HistoryFragment extends Fragment implements Cloneable {
 
@@ -35,6 +29,7 @@ public class HistoryFragment extends Fragment implements Cloneable {
 
 		table = (TableLayout) rootView.findViewById(R.id.tabLay);
 
+		refreshPage();
 		displayViolations();
 		return rootView;
 	}
@@ -97,12 +92,16 @@ public class HistoryFragment extends Fragment implements Cloneable {
 
 					textView = (TextView) tableRow.getChildAt(j);
 
-					if (j == 0) {
-						textView.setText(refreshList.get(i - 1).getDate());
-					} else {
-						textView.setText(refreshList.get(i - 1)
-								.getNoOfViolations());
+					if(i < refreshList.size() + 1){
+						
+						if (j == 0) {
+							textView.setText(refreshList.get(i - 1).getDate());
+						} else {
+							textView.setText(refreshList.get(i - 1)
+									.getNoOfViolations());
+						}
 					}
+					
 				}
 			}
 
