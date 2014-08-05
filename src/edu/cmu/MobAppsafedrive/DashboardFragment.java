@@ -1,12 +1,23 @@
 package edu.cmu.MobAppsafedrive;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxCallback;
+import com.androidquery.callback.AjaxStatus;
+
 import edu.cmu.Model.DashBoardModel;
 import edu.cmu.utility.Constants;
 import edu.cmu.utility.SafeDrivePreferences;
 import android.content.Context;
 import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
@@ -14,7 +25,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView.FindListener;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,7 +63,6 @@ public class DashboardFragment extends ListFragment {
 
 	public void refreshView() {
 
-		
 		final NumberFormat formatter = NumberFormat.getInstance();
 		formatter.setMinimumFractionDigits(2);
 		formatter.setMaximumFractionDigits(2);
@@ -62,39 +75,98 @@ public class DashboardFragment extends ListFragment {
 
 				while (true) {
 
-					Log.d("Inside Dash fragment thread",
-							SafeDrivePreferences.preferences
-									.getString(
-											"currentSpeed",
-											Constants.SAFE_CURRENT_SPEED_VALUE
-													+ SafeDrivePreferences.preferences
-															.getString(
-																	"SpeedLimit",
-																	Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE)));
-
+					/*
+					 * Log.d("Inside Dash fragment thread",
+					 * SafeDrivePreferences.preferences .getString(
+					 * "currentSpeed", Constants.SAFE_CURRENT_SPEED_VALUE +
+					 * SafeDrivePreferences.preferences .getString(
+					 * "SpeedLimit",
+					 * Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE)));
+					 */
 					getActivity().runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
 							// This code will always run on the UI thread,
 							// therefore
 							// is safe to modify UI elements.
-							boolean isItAccidentProne = SafeDrivePreferences.preferences.getBoolean("isItAccidentProne", false);
-														
-							if(isItAccidentProne){
-								view.setBackgroundColor(Color.RED);
-							}else{
+							boolean isItAccidentProne = SafeDrivePreferences.preferences
+									.getBoolean("isItAccidentProne", false);
+							String getUnit = "MPH";
+
+							if (SafeDrivePreferences.preferences
+									.contains("Unit")) {
+								getUnit = SafeDrivePreferences.preferences
+										.getString("Unit", "MPH");
+							}
+
+							double currentSpeed;
+							double speedLimit = 0;
+
+							if (isItAccidentProne) {
+								view.setBackgroundColor(Color.rgb(220, 70, 70));
+								Toast.makeText(getActivity(),
+										"Drive Safe !! Accident Prone Area !!",
+										Toast.LENGTH_SHORT).show();
+							} else {
 								view.setBackgroundColor(Color.WHITE);
 							}
-							
-							
-							String formattedCurrentSpeed = formatter.format(Double.valueOf(SafeDrivePreferences.preferences
-									.getString("currentSpeed",
-											Constants.SAFE_CURRENT_SPEED_VALUE)));
 
-							String formattedSpeedLimit = formatter.format(Double.valueOf(SafeDrivePreferences.preferences
+							currentSpeed = Double.valueOf(SafeDrivePreferences.preferences
+									.getString("currentSpeed",
+											Constants.SAFE_CURRENT_SPEED_VALUE));
+
+							speedLimit = Double.valueOf(SafeDrivePreferences.preferences
 									.getString(
 											"SpeedLimit",
-											Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE)));
+											Constants.SAFE_NATIONAL_SPEED_LIMIT_VALUE));
+
+							if (SafeDrivePreferences.preferences
+									.contains("LocationBased")) {
+								if (SafeDrivePreferences.preferences.getString(
+										"LocationBased", "false").equals(
+										"false")) {
+									
+									String temp = SafeDrivePreferences.preferences
+											.getString("SpeedValue", "0");
+									
+									if(!temp.equals("")){
+										speedLimit = Double.valueOf(temp);
+									}	
+									
+								}
+							}
+
+							String formattedCurrentSpeed;
+
+							String formattedSpeedLimit;
+
+							if (getUnit.equalsIgnoreCase("MPH")) {
+
+								formattedCurrentSpeed = formatter
+										.format(currentSpeed);
+								formattedSpeedLimit = formatter
+										.format(speedLimit);
+
+								formattedCurrentSpeed = formattedCurrentSpeed
+										+ "\t MPH";
+								formattedSpeedLimit = formattedSpeedLimit
+										+ "\t MPH";
+							} else {
+								currentSpeed = currentSpeed
+										* Constants.SAFE_MILES_KMS_CONVERTOR;
+								speedLimit = speedLimit
+										* Constants.SAFE_MILES_KMS_CONVERTOR;
+
+								formattedCurrentSpeed = formatter
+										.format(currentSpeed);
+								formattedSpeedLimit = formatter
+										.format(speedLimit);
+
+								formattedSpeedLimit = formattedSpeedLimit
+										+ "\t KmPH";
+								formattedCurrentSpeed = formattedCurrentSpeed
+										+ "\t KmPH";
+							}
 
 							dashboardBean = new DashBoardModel(
 									formattedCurrentSpeed, formattedSpeedLimit);

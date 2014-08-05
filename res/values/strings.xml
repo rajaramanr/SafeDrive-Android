@@ -19,7 +19,12 @@
     <string name="ShowPDev">Show paired Devices</string>
     <string name="DiscoverDev">Discover Devices</string>
     <string name="Connect">Connect</string>
+    <string name="pick_color">Select your action</string>
     
+    <string-array name="colors_array">
+        <item>Traffic</item>
+        <item>Block</item>
+    </string-array>
     
     <string-array name="spinnerItems">
         <item>MPH</item>
@@ -29,5 +34,6 @@
     
     <string name="app_id">558707017572872</string>
     <string name="title_activity_connect">ConnectActivity</string>
+    <string name="speed_limit">Speed Limit</string>
 
 </resources>

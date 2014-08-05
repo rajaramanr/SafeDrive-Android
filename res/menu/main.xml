@@ -5,7 +5,7 @@
 
      <item
         android:id="@+id/item1"
-        android:orderInCategory="98"
+        android:orderInCategory="97"
         android:title="@string/bluetooth_string"
         app:showAsAction="always"
         android:icon="@drawable/bluetooth_grey" 
@@ -13,12 +13,19 @@
               
       <item
         android:id="@+id/item2"
-        android:orderInCategory="99"
+        android:orderInCategory="98"
         android:title="@string/fb"
         app:showAsAction="always"
         android:icon="@drawable/fb_android" 
         android:menuCategory="container"/>
         
+      <item
+        android:id="@+id/item3"
+        android:orderInCategory="99"
+        android:title="@string/fb"
+        app:showAsAction="always"
+        android:icon="@drawable/question" 
+        android:menuCategory="container"/>
      
     <item
         android:id="@+id/action_settings"
@@ -26,6 +33,6 @@
         android:title="@string/action_settings"
         app:showAsAction="always"
         android:menuCategory="container"
-         android:icon="@drawable/settings_grey"/>
+         android:icon="@drawable/icon_settings"/>
 
 </menu>

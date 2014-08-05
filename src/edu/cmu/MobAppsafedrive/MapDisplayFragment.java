@@ -1,6 +1,8 @@
 package edu.cmu.MobAppsafedrive;
 
 import java.io.IOException;
+import java.text.Format;
+import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 import com.google.android.gms.maps.CameraUpdate;
@@ -20,10 +22,13 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 public class MapDisplayFragment extends SupportMapFragment {
 
@@ -94,7 +99,11 @@ public class MapDisplayFragment extends SupportMapFragment {
 			Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
 			double latitude = Double.valueOf(Constants.SAFE_SPEED_LAT);
 			double longitude = Double.valueOf(Constants.SAFE_SPEED_LONG);
-			String street;		
+			NumberFormat numberFormat = NumberFormat.getInstance();
+			numberFormat.setMaximumFractionDigits(6);
+			numberFormat.setMinimumFractionDigits(6);
+			
+			String street;
 
 			if (SafeDrivePreferences.preferences.contains("latitude")) {
 				latitude = Double.valueOf(SafeDrivePreferences.preferences
@@ -108,6 +117,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 			// Get the current location from the input parameter list
 			//
 			// Create a list to contain the result address
+
 			List<Address> addresses = null;
 			try {
 				/*
@@ -143,7 +153,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 						.getAddressLine(0) : "";
 
 				SafeDrivePreferences.setPreferences("street", street);
-				
+
 				String addressText = String.format("%s, %s, %s",
 				// If there's a street address, add it
 						street,
@@ -151,6 +161,8 @@ public class MapDisplayFragment extends SupportMapFragment {
 						address.getLocality(),
 						// The country of the address
 						address.getCountryName());
+
+				addressText = street +"," + address.getLocality() + "\n" + numberFormat.format(latitude) + "," + numberFormat.format(longitude);
 				// Return the text
 				return addressText;
 			} else {
@@ -187,7 +199,7 @@ public class MapDisplayFragment extends SupportMapFragment {
 		mMap = getMap();
 
 		dynamicMarker = mMap.addMarker(new MarkerOptions().position(latLng)
-				.title("Current Location"));
+				.title("Car Location"));
 
 		CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(latLng,
 				15);

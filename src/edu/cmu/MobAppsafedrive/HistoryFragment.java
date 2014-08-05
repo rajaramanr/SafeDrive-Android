@@ -100,6 +100,10 @@ public class HistoryFragment extends Fragment implements Cloneable {
 							textView.setText(refreshList.get(i - 1)
 									.getNoOfViolations());
 						}
+						
+						textView.setVisibility(View.VISIBLE);
+					}else{
+						textView.setVisibility(View.INVISIBLE);
 					}
 					
 				}

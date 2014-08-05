@@ -164,7 +164,7 @@ public class SafeSQLiteHelper extends SQLiteOpenHelper {
 		}
 
 		cursor.close();
-		close();
+		database.close();
 
 		return accidentProne;
 	}
@@ -207,8 +207,8 @@ public class SafeSQLiteHelper extends SQLiteOpenHelper {
 			}
 		}
 		cursor.close();		
-		//database.close();
-		close();
+		database.close();
+		//close();
 	}
 	
 	public void getViolationsFromUserInfo(){
@@ -241,8 +241,8 @@ public class SafeSQLiteHelper extends SQLiteOpenHelper {
 									
 		}
 		cursor.close();
-		//database.close();
-		close();
+		database.close();
+		//close();
 		
 	}
 }
