@@ -23,6 +23,12 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
 import android.util.Log;
 
+/**
+ * The class to interact with the sql lite database which copies the table from the assets folder which contains the accident 
+ * information from mellisa. It then creates a new table userInfo to store the violations of the user. it also
+ * has methods to retreive the infromation from the sqlite.
+ *
+ */
 public class SafeSQLiteHelper extends SQLiteOpenHelper {
 
 	private Context context;
@@ -133,6 +139,9 @@ public class SafeSQLiteHelper extends SQLiteOpenHelper {
 
 	}
 
+	/**
+	 * Checks whether location is accident prone from database.
+	 */
 	public boolean isItAccidentProne() {
 
 		boolean accidentProne = false;
@@ -169,6 +178,9 @@ public class SafeSQLiteHelper extends SQLiteOpenHelper {
 		return accidentProne;
 	}
 
+	/**
+	 * Updates the violations in the userInfo table
+	 */
 	public void updateUserInfo() {
 
 		Date currentDate = new Date();
@@ -211,6 +223,10 @@ public class SafeSQLiteHelper extends SQLiteOpenHelper {
 		//close();
 	}
 	
+	/**
+	 * 
+	 * Gets the violations from the userInfo table for last 7 days from the current date.
+	 */
 	public void getViolationsFromUserInfo(){
 		
 		int n=6;

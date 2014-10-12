@@ -120,6 +120,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 	MediaPlayer mp;
 	String fbMessage;
+	String fbPurpose;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -409,6 +410,64 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			startActivity(intent);
 
 		} else if (id == R.id.item2) {
+			
+				final Session session =	Session.openActiveSession(this, true, new Session.StatusCallback() {
+
+				      // callback when session changes state
+				      @Override
+				      public void call(Session session, SessionState state, Exception exception) {
+				        if (session.isOpened()) {
+
+				          // make request to the /me API
+				          Request.newMeRequest(session, new Request.GraphUserCallback() {
+
+				            // callback after Graph API response with user object
+				            @Override
+				            public void onCompleted(GraphUser user, Response response) {
+				              if (user != null) {
+				            	  Toast.makeText(getApplicationContext(), "Hello "+user.getName() , Toast.LENGTH_SHORT).show();
+				   //             TextView welcome = (TextView) findViewById(R.id.welcome);
+				     //           welcome.setText("Hello " + user.getName() + "!");
+				              }
+				            }
+				          }).executeAsync();
+				        }
+				      }
+				    });	
+			
+				
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle(R.string.pick_color).setItems(
+					R.array.colors_array,
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int which) {
+
+							// The 'which' argument contains the index position
+							// of the selected item
+							if (which == 0)
+								fbPurpose = "traffic";
+							else if (which == 1)
+								fbPurpose = "blocked!!";
+							
+							publishStory(session);
+						}
+					});
+			builder.create().show();
+			
+
+	}		  
+			else if(id == R.id.item3){
+		
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle("Help").setMessage(Constants.SAFE_HELP_MESSAGE);
+			builder.create().show();
+		}
+					
+
+		return super.onOptionsItemSelected(item);
+	}
+
+	private void publishStory(Session session) {
 			Geocoder geocoder = new Geocoder(getApplicationContext(),
 					Locale.getDefault());
 			Double lat = Double.valueOf(SafeDrivePreferences.preferences
@@ -458,96 +517,14 @@ public class SafeDriveActivity extends ActionBarActivity implements
 
 			}
 
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setTitle(R.string.pick_color).setItems(
-					R.array.colors_array,
-					new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
+				
 
-							// The 'which' argument contains the index position
-							// of the selected item
-							if (which == 0)
-								fbMessage = "Avoid " + addressText
-										+ " - there's a lot of traffic here!";
-							else if (which == 1)
-								fbMessage = "Guys stay away from "
-										+ addressText + " -its blocked!!";
-							publishStory(fbMessage);
-						}
-					});
-			builder.create().show();
-
-			/*
-			 * Session session = Session.getActiveSession(); if (session != null
-			 * && (session.isOpened() || session.isClosed()) ) {
-			 * onSessionStateChange(session, session.getState(), null); }
-			 * 
-			 * uiHelper.onResume();
-			 * 
-			 * Session.NewPermissionsRequest newPermissionsRequest = new Session
-			 * .NewPermissionsRequest(this, Arrays.asList("publish_actions"));
-			 * session.requestNewPublishPermissions(newPermissionsRequest);
-			 * 
-			 * }
-			 */
-
-			/*
-			 * Session.openActiveSession(this, true, new
-			 * Session.StatusCallback() {
-			 * 
-			 * // callback when session changes state
-			 * 
-			 * @Override public void call(Session session, SessionState state,
-			 * Exception exception) { if (session.isOpened()) {
-			 * 
-			 * 
-			 * // make request to the /me API Bundle params = new Bundle();
-			 * params.putString("id", "558707017572872");
-			 * params.putString("description", "sai");
-			 * params.putString("message", "SAI");
-			 * 
-			 * // make the API call new Request( session, "558707017572872",
-			 * params, HttpMethod.POST, new Request.Callback() { public void
-			 * onCompleted(Response response) { // handle the result
-			 * 
-			 * System.out.println("OnComplete"); } } ).executeAsync();
-			 * 
-			 * 
-			 * 
-			 * } } });
-			 * 
-			 * if (FacebookDialog.canPresentShareDialog(getApplicationContext(),
-			 * FacebookDialog.ShareDialogFeature.SHARE_DIALOG)) { // Publish the
-			 * post using the Share Dialog FacebookDialog shareDialog = new
-			 * FacebookDialog.ShareDialogBuilder(this) .setLink("")
-			 * .setDescription("sdf")
-			 * 
-			 * .build(); uiHelper.trackPendingDialogCall(shareDialog.present());
-			 * 
-			 * } else { // Fallback. For example, publish the post using the
-			 * Feed Dialog } FacebookDialog shareDialog = new
-			 * FacebookDialog.ShareDialogBuilder(this)
-			 * .setLink("www.google.com") .setCaption("caption")
-			 * .setApplicationName("aapp")
-			 * .setDescription("You have exceeded your speed") .build();
-			 * uiHelper.trackPendingDialogCall(shareDialog.present());
-			 */
-		}else if(id == R.id.item3){
-		
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setTitle("Help").setMessage(Constants.SAFE_HELP_MESSAGE);
-			builder.create().show();
-		}
-
-		return super.onOptionsItemSelected(item);
-	}
-
-	private void publishStory(String message) {
-
-		Session session = Session.getActiveSession();
 
 		if (session != null) {
+			
 
+String key = session.getAccessToken();
+System.out.println(key);
 			// Check for publish permissions
 			List<String> permissions = session.getPermissions();
 			if (!isSubsetOf(PERMISSIONS, permissions)) {
@@ -558,18 +535,19 @@ public class SafeDriveActivity extends ActionBarActivity implements
 				return;
 			}
 
+			if(fbPurpose.equalsIgnoreCase("traffic")){
+				fbMessage = "Avoid " + addressText
+						+ " - there's a lot of traffic here!";
+				}
+				else if(fbPurpose.equalsIgnoreCase("blocked")){
+					fbMessage = "Guys stay away from "
+							+ addressText + " -its blocked!!";
+				}
+		
 			Bundle postParams = new Bundle();
-			// postParams.putString("name", "Facebook SDK for Android");
-			// postParams.putString("caption",
-			// "Build great social apps and get more installs.");
-			// postParams.putString("description",
-			// "The Facebook SDK for Android makes it easier and faster to develop Facebook integrated Android apps.");
-			postParams.putString("message", message);
-			// postParams.putString("link",
-			// "https://developers.facebook.com/android");
-			// postParams.putString("picture",
-			// "https://raw.github.com/fbsamples/ios-3.x-howtos/master/Images/iossdk_logo.png");
-
+			
+			postParams.putString("message", fbMessage);
+			
 			Request.Callback callback = new Request.Callback() {
 				public void onCompleted(Response response) {
 
@@ -616,7 +594,7 @@ public class SafeDriveActivity extends ActionBarActivity implements
 			if (pendingPublishReauthorization
 					&& state.equals(SessionState.OPENED_TOKEN_UPDATED)) {
 				pendingPublishReauthorization = false;
-				publishStory(fbMessage);
+				publishStory(session);
 			}
 		} else if (state.isClosed()) {
 			// shareButton.setVisibility(View.INVISIBLE);

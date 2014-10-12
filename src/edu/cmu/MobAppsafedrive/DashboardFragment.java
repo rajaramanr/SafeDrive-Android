@@ -32,6 +32,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+/**
+ * This class inherits the ListFragment class to display the speed limit and current speed in a list view.
+ * It is also responsible for displaying the desired values to user whenever the user is on or navigates to 
+ * DashboardFragment.
+ *
+ */
 public class DashboardFragment extends ListFragment {
 
 	static JSONObject jsonObject = null;
@@ -52,15 +58,14 @@ public class DashboardFragment extends ListFragment {
 		return view;
 		// return rootView;
 	}
+	
 
-	/*
-	 * public void displaySpeedLimit() {
-	 * 
-	 * asyncJson();
-	 * 
-	 * }
+	/**
+	 * This method runs on a seperate thread to refresh the fragment dashboard every time the value changes from the 
+	 * json data. (car speed and speed limit). It also formats the data to display just showing the two fraction digits.
+	 * It is also responsible for changing the view to red when the car goes in accident prone zone. It also does miles to kms
+	 * conversion based on settings and decides when to alert and when not to alert based on settings.
 	 */
-
 	public void refreshView() {
 
 		final NumberFormat formatter = NumberFormat.getInstance();
@@ -227,6 +232,12 @@ public class DashboardFragment extends ListFragment {
 		}
 	}
 
+	/**
+	 * 
+	 * Adapter to list the elements of the fragment dashboard in the list view. The elements are Speed Limit and 
+	 * Current speed.
+	 *
+	 */
 	public class DashboardListAdapter extends ArrayAdapter<String> {
 
 		private final Context context;

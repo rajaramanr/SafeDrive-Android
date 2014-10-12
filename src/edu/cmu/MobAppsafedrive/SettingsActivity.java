@@ -19,6 +19,11 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+/**
+ * This class which takes care of all the settings which is present in the settings menu item. It is responsible
+ * for getting the inputs from the user in the settings and setting the values to the shared preferences. 
+ *
+ */
 public class SettingsActivity extends ActionBarActivity {
 
 	SeekBar seekBar;
@@ -80,7 +85,7 @@ public class SettingsActivity extends ActionBarActivity {
 			switchValue.setChecked(Boolean.valueOf(SafeDrivePreferences.preferences.getString("AlertMe", "false")));
 		}		
 				
-		
+		/* On change event to display the threshoold value in the text box */
 		seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
 			@Override
@@ -104,6 +109,7 @@ public class SettingsActivity extends ActionBarActivity {
 			}
 		});
 
+		/* On change event to display the customer user fields when the location based is No */
 		location.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
 			@Override
@@ -124,6 +130,7 @@ public class SettingsActivity extends ActionBarActivity {
 			}
 		});
 
+		/* After text change event to prompt the user to enter the value between 10 and 150. */
 		speedValue.addTextChangedListener(new TextWatcher() {
 
 			@Override
@@ -168,6 +175,7 @@ public class SettingsActivity extends ActionBarActivity {
 		return true;
 	}
 
+	/* Sets the value of the all the fields on exit of this activity */
 	public void onPause() {
 
 		super.onPause();

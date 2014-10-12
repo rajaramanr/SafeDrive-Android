@@ -34,6 +34,11 @@ public class HistoryFragment extends Fragment implements Cloneable {
 		return rootView;
 	}
 
+	/**
+	 * 
+	 * This method runs on a separate thread to display the violations to the user whenever he is exceeding
+	 * the speed limit. It displays the violations of last 7 days. 
+	 */
 	public void displayViolations() {
 
 		displayUserViolationsThread = new Thread(new Runnable() {
